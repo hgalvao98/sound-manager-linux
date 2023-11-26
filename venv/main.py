@@ -13,7 +13,6 @@ def parse_pactl_output(output):
     current_device = None
     parsing_properties = False
 
-    # Set the locale to use a period as the decimal separator
     setlocale(LC_NUMERIC, 'C')
 
     for line in output.splitlines():
@@ -54,12 +53,15 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
         outputDevicesMenu = menu.addMenu("Output Devices")
         inputDevicesMenu = menu.addMenu("Input Devices Coming Soon")
         inputDevicesMenu.setEnabled(False)
+        actionGroup = QtWidgets.QActionGroup(self)  
         for device in devices.values():
-            deviceAction = outputDevicesMenu.addAction(device['descrição'])
+            deviceAction = QtWidgets.QAction(device['descrição'], self, checkable=True)
+            if device['estado'] == 'RUNNING':
+                deviceAction.setChecked(True)
             deviceAction.triggered.connect(lambda checked, device=device: self.device_selected(device, 'output'))
-            # if device.get('max_input_channels', 0) > 0:
-            #     deviceAction = inputDevicesMenu.addAction(device['name'])
-            #     deviceAction.triggered.connect(lambda checked, device=device: self.device_selected(device, 'input'))
+            actionGroup.addAction(deviceAction) 
+            outputDevicesMenu.addAction(deviceAction) 
+
         exitAction = menu.addAction("Exit")
         exitAction.triggered.connect(self.exit)
         self.setContextMenu(menu)
@@ -67,12 +69,10 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
 
     def device_selected(self, device, device_type):
         self.switch_audio_device(device, device_type)
-        print(f"Device {device['name']} selected for {device_type}")
 
     def switch_audio_device(self, device, device_type):
         index = device['name']
         command = f"pacmd set-default-sink {index}"
-        print(command)
         subprocess.run(command, shell=True)
 
 
